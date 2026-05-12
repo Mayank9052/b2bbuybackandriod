@@ -1,0 +1,16 @@
+**/bin/
+**/obj/
+
+frontend/.dart_tool/
+frontend/.flutter-plugins
+frontend/.flutter-plugins-dependencies
+frontend/.idea/
+frontend/build/
+frontend/android/.gradle/
+frontend/android/local.properties
+
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates

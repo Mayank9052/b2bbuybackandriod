@@ -1,0 +1,66 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "backend: build",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "build",
+        "${workspaceFolder}\\backend\\B2BBuyback.Api\\B2BBuyback.Api.csproj"
+      ],
+      "problemMatcher": "$msCompile",
+      "group": "build"
+    },
+    {
+      "label": "backend: run",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "run",
+        "--project",
+        "${workspaceFolder}\\backend\\B2BBuyback.Api\\B2BBuyback.Api.csproj"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}\\backend\\B2BBuyback.Api"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "frontend: pub get",
+      "type": "process",
+      "command": "${workspaceFolder}\\.vscode\\scripts\\flutter-with-git.cmd",
+      "args": [
+        "pub",
+        "get"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}\\frontend"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "frontend: run",
+      "type": "process",
+      "command": "${workspaceFolder}\\.vscode\\scripts\\flutter-with-git.cmd",
+      "args": [
+        "run"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}\\frontend"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "fullstack: run",
+      "dependsOn": [
+        "backend: run",
+        "frontend: run"
+      ],
+      "dependsOrder": "parallel",
+      "problemMatcher": []
+    }
+  ]
+}
