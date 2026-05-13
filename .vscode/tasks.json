@@ -61,6 +61,54 @@
       ],
       "dependsOrder": "parallel",
       "problemMatcher": []
+    },
+    {
+      "label": "frontend: run (USB)",
+      "type": "process",
+      "command": "${workspaceFolder}\\.vscode\\scripts\\flutter-with-git.cmd",
+      "args": [
+        "run",
+        "-d",
+        "usb"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}\\frontend"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "frontend: run (emulation)",
+      "type": "process",
+      "command": "${workspaceFolder}\\.vscode\\scripts\\flutter-with-git.cmd",
+      "args": [
+        "run",
+        "-d",
+        "emulator"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}\\frontend"
+      },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "fullstack: run (USB)",
+      "dependsOn": [
+        "backend: run",
+        "frontend: run (USB)"
+      ],
+      "dependsOrder": "parallel",
+      "problemMatcher": []
+    },
+    {
+      "label": "fullstack: run (emulation)",
+      "dependsOn": [
+        "backend: run",
+        "frontend: run (emulation)"
+      ],
+      "dependsOrder": "parallel",
+      "problemMatcher": []
     }
   ]
 }

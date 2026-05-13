@@ -3,8 +3,10 @@ description: "B2B buyback Android starter application."
 publish_to: 'none'
 version: 1.0.0+1
 
+# environment:
+#   sdk: ^3.11.5
 environment:
-  sdk: ^3.11.5
+  sdk: ">=3.11.4 <4.0.0"
 
 dependencies:
   flutter:
