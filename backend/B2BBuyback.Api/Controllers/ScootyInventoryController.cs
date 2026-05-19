@@ -1,11 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OfficeOpenXml;
-using BGaussCRM.API.Data;
-using BGaussCRM.API.Models;
-using BGaussCRM.API.DTOs;
+using B2BBuyback.Api.Data;
+using B2BBuyback.Api.Models;
+using B2BBuyback.Api.DTOs;
 
-namespace BGaussCRM.API.Controllers
+namespace B2BBuyback.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
