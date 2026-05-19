@@ -111,6 +111,7 @@ namespace B2BBuyback.Api.Controllers
         // UPDATE
         // =============================
         [HttpPut("{id}")]
+        [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<IActionResult> Update(
             int id,
             [FromForm] int modelId,

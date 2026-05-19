@@ -43,7 +43,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 // ── Swagger ───────────────────────────────────────────────────
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "B2B Buyback API",
+        Version = "v1"
+    });
+});
 
 // ── CORS ──────────────────────────────────────────────────────
 builder.Services.AddCors(options =>
@@ -71,8 +78,15 @@ builder.Environment.WebRootPath = wwwrootPath;
 var app = builder.Build();
 
 // ── Swagger ───────────────────────────────────────────────────
-app.UseSwagger();
-app.UseSwaggerUI();
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "B2B Buyback API v1");
+        options.RoutePrefix = "swagger";
+    });
+}
 
 // ── Serve React build (wwwroot) ───────────────────────────────
 app.UseDefaultFiles();

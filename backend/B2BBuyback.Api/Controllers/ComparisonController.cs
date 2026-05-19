@@ -257,6 +257,7 @@ namespace B2BBuyback.Api.Controllers
         // POST /api/Comparison/brochure/upload
         // =============================================
         [HttpPost("brochure/upload")]
+        [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<IActionResult> UploadBrochure(
             [FromForm] int modelId, [FromForm] IFormFile file)
         {

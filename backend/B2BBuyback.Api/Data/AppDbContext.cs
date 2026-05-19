@@ -74,6 +74,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<VwExchangeDashboardStat> VwExchangeDashboardStats { get; set; }
 
+    public DbSet<Dealer> Dealers { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<AreaScootyStock>(entity =>
@@ -667,6 +669,18 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.StateName).HasMaxLength(100);
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
             entity.Property(e => e.VariantName).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<Dealer>(entity =>
+        {
+            entity.HasKey(e => e.DealerId);
+            entity.HasIndex(e => e.DealerCode).IsUnique();
+            entity.HasIndex(e => e.MobileNumber).IsUnique();
+            entity.Property(e => e.DealerCode).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.DealerName).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.MobileNumber).HasMaxLength(10).IsRequired();
+            entity.Property(e => e.OtpCode).HasMaxLength(6);
+            entity.Property(e => e.RefreshToken).HasMaxLength(500);
         });
 
         modelBuilder.Entity<VwExchangeDashboardStat>(entity =>

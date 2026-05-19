@@ -10,11 +10,16 @@
       "args": [],
       "cwd": "${workspaceFolder}\\backend\\B2BBuyback.Api",
       "stopAtEntry": false,
-      "console": "internalConsole",
+      "console": "integratedTerminal",        // ← change from internalConsole
       "justMyCode": true,
       "env": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "ASPNETCORE_URLS": "http://0.0.0.0:5280"
+        "ASPNETCORE_URLS": "http://localhost:5181;https://localhost:5182"
+      },
+      "serverReadyAction": {
+        "pattern": "Now listening on: (https?://\\S+)",
+        "uriFormat": "%s/swagger/index.html",
+        "action": "openExternally"
       }
     },
     {
@@ -30,7 +35,7 @@
       "customToolReplacesArgs": 1,
       "toolArgs": [
         "--dart-define",
-        "API_BASE_URL=http://10.0.2.2:5280/api"
+        "API_BASE_URL=http://10.0.2.2:5181"
       ]
     },
     {
@@ -72,8 +77,8 @@
     {
       "id": "androidApiBaseUrl",
       "type": "promptString",
-      "description": "API base URL for the Android device. Use your PC LAN IP, for example http://192.168.1.10:5280/api",
-      "default": "http://192.168.1.10:5280/api"
+      "description": "API base URL for the Android device. Use your PC LAN IP, for example http://192.168.1.10:5181",
+      "default": "http://192.168.1.10:5181"
     }
   ]
 }

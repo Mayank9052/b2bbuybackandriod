@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-set "FLUTTER_ROOT=C:\src\flutter"
+set "FLUTTER_ROOT=C:\Users\priyanka.nikam\flutter\flutter"
 set "PATH=C:\Program Files\Git\cmd;%FLUTTER_ROOT%\bin;%PATH%"
 
 if not exist "%FLUTTER_ROOT%\bin\flutter.bat" (

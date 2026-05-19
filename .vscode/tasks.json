@@ -69,7 +69,7 @@
       "args": [
         "run",
         "-d",
-        "usb"
+        "MNEIEYSSVSEYU8AI"
       ],
       "options": {
         "cwd": "${workspaceFolder}\\frontend"
