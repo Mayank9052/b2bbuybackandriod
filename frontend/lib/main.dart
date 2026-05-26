@@ -1,11 +1,10 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'services/api_service.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/otp_screen.dart';
-import 'screens/dashboard_screen.dart';
+import 'screens/dashboard_screen.dart';   // ← screens/ not features/
 import 'utils/app_theme.dart';
 
 void main() async {

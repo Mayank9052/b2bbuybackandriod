@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+namespace B2BBuyback.Api.DTOs;
 
 public class CreateCustomerRequestDto
 {

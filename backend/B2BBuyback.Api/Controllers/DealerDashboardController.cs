@@ -9,7 +9,7 @@ namespace B2BBuyback.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    //[Authorize(Roles = "Dealer")]
+    [Authorize(Roles = "Dealer")]   // ← re-enabled (was commented out)
     public class DealerDashboardController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -19,42 +19,34 @@ namespace B2BBuyback.Api.Controllers
             _context = context;
         }
 
-        // ══════════════════════════════════════════════════════════
-        // GET api/DealerDashboard/stats
-        // Returns KPI cards + recent vehicles for the dealer
-        // ══════════════════════════════════════════════════════════
+        // ── GET api/DealerDashboard/stats ─────────────────────────
         [HttpGet("stats")]
         public async Task<IActionResult> GetStats()
         {
+            // DealerCode claim is set in DealerAuthController.GenerateJwt()
             var dealerCode = User.FindFirstValue("DealerCode");
-            if (string.IsNullOrEmpty(dealerCode))
-                return Unauthorized();
 
-            // Get all cases for this dealer from ExchangeCases
-            // DealerId in ExchangeCases is stored as the dealer username/code
+            // If no DealerCode claim, try Name claim as fallback
+            if (string.IsNullOrEmpty(dealerCode))
+                dealerCode = User.FindFirstValue(ClaimTypes.Name);
+
+            if (string.IsNullOrEmpty(dealerCode))
+                return Unauthorized(new { error = "Dealer identity not found in token." });
+
             var allCases = await _context.ExchangeCases
                 .Where(c => c.DealerId == dealerCode)
                 .ToListAsync();
 
-            var now          = DateTime.UtcNow;
-            var monthStart   = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+            var now        = DateTime.UtcNow;
+            var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
 
             var dashboard = new DealerDashboardDto
             {
-                ProcuredThisMonth = allCases.Count(c =>
-                    c.CreatedAt >= monthStart),
-
-                PendingApproval = allCases.Count(c =>
-                    c.Status == "PendingAdminReview"),
-
-                SoldAndSettled = allCases.Count(c =>
-                    c.Status == "Sold" || c.Status == "Settled"),
-
-                InRefurbishment = allCases.Count(c =>
-                    c.Status == "Refurbishment"),
-
-                Listed = allCases.Count(c =>
-                    c.Status == "Listed"),
+                ProcuredThisMonth = allCases.Count(c => c.CreatedAt >= monthStart),
+                PendingApproval   = allCases.Count(c => c.Status == "PendingAdminReview"),
+                SoldAndSettled    = allCases.Count(c => c.Status == "Sold" || c.Status == "Settled"),
+                InRefurbishment   = allCases.Count(c => c.Status == "Refurbishment"),
+                Listed            = allCases.Count(c => c.Status == "Listed"),
 
                 RecentVehicles = allCases
                     .OrderByDescending(c => c.CreatedAt)
@@ -77,15 +69,13 @@ namespace B2BBuyback.Api.Controllers
             return Ok(dashboard);
         }
 
-        // ══════════════════════════════════════════════════════════
-        // GET api/DealerDashboard/profile
-        // ══════════════════════════════════════════════════════════
+        // ── GET api/DealerDashboard/profile ──────────────────────
         [HttpGet("profile")]
         public async Task<IActionResult> GetProfile()
         {
             var dealerIdStr = User.FindFirstValue("DealerId");
             if (!int.TryParse(dealerIdStr, out var dealerId))
-                return Unauthorized();
+                return Unauthorized(new { error = "DealerId not found in token." });
 
             var dealer = await _context.Dealers.FindAsync(dealerId);
             if (dealer == null) return NotFound();
@@ -101,15 +91,15 @@ namespace B2BBuyback.Api.Controllers
             });
         }
 
-        // ══════════════════════════════════════════════════════════
-        // GET api/DealerDashboard/vehicles
-        // All vehicles for this dealer with optional status filter
-        // ══════════════════════════════════════════════════════════
+        // ── GET api/DealerDashboard/vehicles ─────────────────────
         [HttpGet("vehicles")]
-        public async Task<IActionResult> GetVehicles([FromQuery] string? status, [FromQuery] int page = 1)
+        public async Task<IActionResult> GetVehicles(
+            [FromQuery] string? status,
+            [FromQuery] int page = 1)
         {
             var dealerCode = User.FindFirstValue("DealerCode");
-            if (string.IsNullOrEmpty(dealerCode)) return Unauthorized();
+            if (string.IsNullOrEmpty(dealerCode))
+                return Unauthorized(new { error = "DealerCode not found in token." });
 
             var query = _context.ExchangeCases
                 .Where(c => c.DealerId == dealerCode);

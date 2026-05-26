@@ -6,19 +6,19 @@
       "type": "coreclr",
       "request": "launch",
       "preLaunchTask": "backend: build",
-      "program": "${workspaceFolder}\\backend\\B2BBuyback.Api\\bin\\Debug\\net9.0\\B2BBuyback.Api.dll",
+      "program": "${workspaceFolder}\\backend\\B2BBuyback.Api\\bin\\Debug\\net8.0\\B2BBuyback.Api.dll",
       "args": [],
       "cwd": "${workspaceFolder}\\backend\\B2BBuyback.Api",
       "stopAtEntry": false,
-      "console": "integratedTerminal",        // ← change from internalConsole
+      "console": "integratedTerminal",
       "justMyCode": true,
       "env": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "ASPNETCORE_URLS": "http://localhost:5181;https://localhost:5182"
+        "ASPNETCORE_URLS": "http://0.0.0.0:5181"
       },
       "serverReadyAction": {
-        "pattern": "Now listening on: (https?://\\S+)",
-        "uriFormat": "%s/swagger/index.html",
+        "pattern": "Now listening on: (?:https?://\\S+)",
+        "uriFormat": "http://localhost:5181/swagger/index.html",
         "action": "openExternally"
       }
     },
@@ -51,34 +51,20 @@
       "customToolReplacesArgs": 1,
       "toolArgs": [
         "--dart-define",
-        "API_BASE_URL=${input:androidApiBaseUrl}"
+        "API_BASE_URL=http://10.13.232.40:5181"
       ]
     }
   ],
   "compounds": [
     {
       "name": "Full Stack: Android Emulator Debug",
-      "configurations": [
-        "Backend: B2B Buyback API",
-        "Flutter: Android Emulator Debug"
-      ],
+      "configurations": ["Backend: B2B Buyback API", "Flutter: Android Emulator Debug"],
       "stopAll": true
     },
     {
       "name": "Full Stack: Android Device Debug",
-      "configurations": [
-        "Backend: B2B Buyback API",
-        "Flutter: Android Device Debug"
-      ],
+      "configurations": ["Backend: B2B Buyback API", "Flutter: Android Device Debug"],
       "stopAll": true
-    }
-  ],
-  "inputs": [
-    {
-      "id": "androidApiBaseUrl",
-      "type": "promptString",
-      "description": "API base URL for the Android device. Use your PC LAN IP, for example http://192.168.1.10:5181",
-      "default": "http://192.168.1.10:5181"
     }
   ]
 }

@@ -1,30 +1,43 @@
 using Microsoft.EntityFrameworkCore;
 using B2BBuyback.Api.Data;
 using OfficeOpenXml;
-using B2BBuyback.Api.ModelBinders;
+using B2BBuyback.Api.Conventions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using B2BBuyback.Api.Interfaces;
 using B2BBuyback.Api.Services;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// EPPlus License
+// EPPlus
 ExcelPackage.License.SetNonCommercialPersonal("B2BBuyback.Api");
 
 // ── Database ──────────────────────────────────────────────────
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
 );
-builder.Services.AddScoped<IExchangeEmailService, ExchangeEmailService>();
+
+// ── Services ──────────────────────────────────────────────────
+//builder.Services.AddScoped<IExchangeEmailService, ExchangeEmailService>();
+builder.Services.AddScoped<IDealerOtpEmailService, DealerOtpEmailService>();
+
 // ── Controllers ───────────────────────────────────────────────
-builder.Services.AddControllers(options =>
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(
+            new System.Text.Json.Serialization.JsonStringEnumConverter());
+    });
+
+// Swagger convention to hide IFormFile endpoints
+builder.Services.Configure<Microsoft.AspNetCore.Mvc.MvcOptions>(options =>
 {
-    options.ModelBinderProviders.Insert(0, new DateOnlyModelBinderProvider());
+    options.Conventions.Add(new HideFormFileEndpointsConvention());
 });
 
-// ── JWT Authentication ────────────────────────────────────────
+// ── JWT Authentication ─────────────────────────────────────────
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -41,105 +54,91 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// ── Swagger ───────────────────────────────────────────────────
+// ── Swagger ────────────────────────────────────────────────────
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "B2B Buyback API", Version = "v1" });
+    c.MapType<string>(() => new OpenApiSchema { Type = "string" });
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Title = "B2B Buyback API",
-        Version = "v1"
+        Name = "Authorization", Type = SecuritySchemeType.Http,
+        Scheme = "bearer", BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Enter your JWT token."
     });
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                    { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+            },
+            Array.Empty<string>()
+        }
+    });
+    c.ResolveConflictingActions(a => a.First());
 });
 
-// ── CORS ──────────────────────────────────────────────────────
+// ── CORS ───────────────────────────────────────────────────────
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
-        policy
-            .WithOrigins(
+        policy.WithOrigins(
                 "http://localhost:5173",
                 "http://localhost:3000",
                 "http://34.203.61.70",
                 "http://34.203.61.70:80",
-                "http://34.203.61.70:443"
-            )
+                "http://34.203.61.70:443")
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials());
 });
 
-// ── Explicit WebRootPath ──────────────────────────────────────
+// ── WebRoot ────────────────────────────────────────────────────
 var wwwrootPath = Path.Combine(builder.Environment.ContentRootPath, "wwwroot");
-if (!Directory.Exists(wwwrootPath))
-    Directory.CreateDirectory(wwwrootPath);
+if (!Directory.Exists(wwwrootPath)) Directory.CreateDirectory(wwwrootPath);
 builder.Environment.WebRootPath = wwwrootPath;
 
 var app = builder.Build();
 
-// ── Swagger ───────────────────────────────────────────────────
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI(options =>
+    app.UseSwaggerUI(o =>
     {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "B2B Buyback API v1");
-        options.RoutePrefix = "swagger";
+        o.SwaggerEndpoint("/swagger/v1/swagger.json", "B2B Buyback API v1");
+        o.RoutePrefix = "swagger";
     });
 }
 
-// ── Serve React build (wwwroot) ───────────────────────────────
 app.UseDefaultFiles();
-app.UseStaticFiles();   // serves wwwroot — React build + /ExchangeImages inside wwwroot
+app.UseStaticFiles();
 
-// ── ALSO serve ExchangeImages from its physical disk location ─
-// If images were saved outside wwwroot (e.g. in a temp folder or
-// directly under ContentRoot), this second provider catches them.
-//
-// The controller saves to: GetWebRoot() / ExchangeImages / {id} / {file}
-// GetWebRoot() tries wwwroot first, then ContentRoot/wwwroot, then temp.
-// We register all three possible roots so images are always found.
-
-var possibleRoots = new[]
+foreach (var root in new[] {
+    wwwrootPath,
+    builder.Environment.ContentRootPath,
+    Path.Combine(Path.GetTempPath(), "bgauss-uploads")
+})
 {
-    wwwrootPath,                                                        // primary
-    builder.Environment.ContentRootPath,                                // fallback 1
-    Path.Combine(Path.GetTempPath(), "bgauss-uploads"),                 // fallback 2
-};
+    var folder = Path.Combine(root, "ExchangeImages");
+    try { Directory.CreateDirectory(folder); } catch { }
 
-foreach (var root in possibleRoots)
-{
-    var exchangeImagesFolder = Path.Combine(root, "ExchangeImages");
-
-    // Create the folder if it doesn't exist yet (avoids DirectoryNotFoundException)
-    if (!Directory.Exists(exchangeImagesFolder))
-    {
-        try { Directory.CreateDirectory(exchangeImagesFolder); }
-        catch { /* ignore — will be created on first upload */ }
-    }
-
-    // Register a static file provider for this root so /ExchangeImages/... URLs work
     app.UseStaticFiles(new StaticFileOptions
     {
         FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(root),
-        RequestPath  = "",           // serve at root — /ExchangeImages/11/Front.jpg
-        ServeUnknownFileTypes = true, // allow .jpg .png without explicit MIME
+        RequestPath  = "",
+        ServeUnknownFileTypes = true,
         OnPrepareResponse = ctx =>
-        {
-            // Cache images for 1 hour in the browser
-            ctx.Context.Response.Headers["Cache-Control"] = "public,max-age=3600";
-        }
+            ctx.Context.Response.Headers["Cache-Control"] = "public,max-age=3600"
     });
 }
 
-// ── CORS ──────────────────────────────────────────────────────
 app.UseCors("AllowAll");
-
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-
-// ── React routing fallback ────────────────────────────────────
 app.MapFallbackToFile("index.html");
 
 app.Run();

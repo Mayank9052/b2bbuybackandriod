@@ -31,10 +31,7 @@
       "label": "frontend: pub get",
       "type": "process",
       "command": "${workspaceFolder}\\.vscode\\scripts\\flutter-with-git.cmd",
-      "args": [
-        "pub",
-        "get"
-      ],
+      "args": ["pub", "get"],
       "options": {
         "cwd": "${workspaceFolder}\\frontend"
       },
@@ -45,21 +42,14 @@
       "type": "process",
       "command": "${workspaceFolder}\\.vscode\\scripts\\flutter-with-git.cmd",
       "args": [
-        "run"
+        "run",
+        "--dart-define",
+        "API_BASE_URL=http://10.13.232.40:5181"
       ],
       "options": {
         "cwd": "${workspaceFolder}\\frontend"
       },
       "isBackground": true,
-      "problemMatcher": []
-    },
-    {
-      "label": "fullstack: run",
-      "dependsOn": [
-        "backend: run",
-        "frontend: run"
-      ],
-      "dependsOrder": "parallel",
       "problemMatcher": []
     },
     {
@@ -69,7 +59,9 @@
       "args": [
         "run",
         "-d",
-        "MNEIEYSSVSEYU8AI"
+        "MNEIEYSSVSEYU8AI",
+        "--dart-define",
+        "API_BASE_URL=http://10.13.232.40:5181"
       ],
       "options": {
         "cwd": "${workspaceFolder}\\frontend"
@@ -84,7 +76,9 @@
       "args": [
         "run",
         "-d",
-        "emulator"
+        "emulator",
+        "--dart-define",
+        "API_BASE_URL=http://10.0.2.2:5181"
       ],
       "options": {
         "cwd": "${workspaceFolder}\\frontend"
@@ -93,20 +87,20 @@
       "problemMatcher": []
     },
     {
+      "label": "fullstack: run",
+      "dependsOn": ["backend: run", "frontend: run"],
+      "dependsOrder": "parallel",
+      "problemMatcher": []
+    },
+    {
       "label": "fullstack: run (USB)",
-      "dependsOn": [
-        "backend: run",
-        "frontend: run (USB)"
-      ],
+      "dependsOn": ["backend: run", "frontend: run (USB)"],
       "dependsOrder": "parallel",
       "problemMatcher": []
     },
     {
       "label": "fullstack: run (emulation)",
-      "dependsOn": [
-        "backend: run",
-        "frontend: run (emulation)"
-      ],
+      "dependsOn": ["backend: run", "frontend: run (emulation)"],
       "dependsOrder": "parallel",
       "problemMatcher": []
     }

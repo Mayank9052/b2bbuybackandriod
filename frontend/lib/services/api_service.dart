@@ -1,15 +1,15 @@
 // lib/services/api_service.dart
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://10.0.2.2:5181',  // emulator default
+    defaultValue: 'http://10.0.2.2:5181',
   );
 
-  // ── Storage keys ───────────────────────────────────────────
   static const _kToken        = 'dealer_token';
   static const _kRefreshToken = 'dealer_refresh_token';
   static const _kDealerCode   = 'dealer_code';
@@ -18,127 +18,172 @@ class ApiService {
   static const _kMobile       = 'dealer_mobile';
   static const _kCity         = 'dealer_city';
 
-  // ── Token helpers ───────────────────────────────────────────
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_kToken);
   }
 
-  static Future<Map<String, String>> authHeaders() async {
+  static Future<Map<String, String>> _authHeaders() async {
     final token = await getToken();
     return {
       'Content-Type': 'application/json',
-      if (token != null) 'Authorization': 'Bearer $token',
+      'Accept'       : 'application/json',
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
     };
   }
 
-  static Future<void> saveSession(Map<String, dynamic> dealer,
-      String token, String refreshToken) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kToken, token);
-    await prefs.setString(_kRefreshToken, refreshToken);
-    await prefs.setString(_kDealerCode, dealer['dealerCode'] ?? '');
-    await prefs.setString(_kDealerName, dealer['dealerName'] ?? '');
-    await prefs.setInt(_kDealerId, dealer['dealerId'] ?? 0);
-    await prefs.setString(_kMobile, dealer['mobile'] ?? '');
-    await prefs.setString(_kCity, dealer['city'] ?? '');
+  static Map<String, String> get _baseHeaders => {
+    'Content-Type': 'application/json',
+    'Accept'       : 'application/json',
+  };
+
+  static dynamic _safeJson(String body) {
+    final trimmed = body.trim();
+    if (trimmed.isEmpty) return null;
+    try { return jsonDecode(trimmed); } catch (_) { return trimmed; }
   }
 
-  static Future<void> clearSession() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+  static String _errorFrom(dynamic decoded, int statusCode) {
+    if (decoded == null) return 'Server error ($statusCode). Is backend running at $baseUrl ?';
+    if (decoded is String && decoded.isNotEmpty) return decoded;
+    if (decoded is Map) {
+      final msg = decoded['error']   ??
+                  decoded['message'] ??
+                  decoded['title']   ??
+                  decoded['detail'];
+      if (msg is String && msg.isNotEmpty) return msg;
+      if (decoded['errors'] is Map) {
+        final errs  = decoded['errors'] as Map;
+        final first = errs.values.firstOrNull;
+        if (first is List && first.isNotEmpty) return first.first.toString();
+      }
+    }
+    return 'Request failed ($statusCode)';
   }
+
+  static Future<Map<String, dynamic>> _post(
+    String path,
+    Map<String, dynamic> body, {
+    bool withAuth = false,
+  }) async {
+    try {
+      final headers  = withAuth ? await _authHeaders() : _baseHeaders;
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl$path'),
+            headers: headers,
+            body: jsonEncode(body),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final decoded = _safeJson(response.body);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        if (decoded is Map<String, dynamic>) return decoded;
+        return {'message': decoded?.toString() ?? 'OK'};
+      }
+      throw _errorFrom(decoded, response.statusCode);
+    } on SocketException {
+      throw 'Cannot reach server at $baseUrl\n\n'
+            'Checklist:\n'
+            '1. Backend is running (dotnet run)\n'
+            '2. Phone & PC on same WiFi\n'
+            '3. Firewall allows port 5181\n'
+            '4. launchSettings.json uses 0.0.0.0:5181\n'
+            '5. App launched via "Flutter: Android Device Debug" with your LAN IP';
+    } on HttpException {
+      throw 'Network error. Please try again.';
+    }
+  }
+
+  static Future<Map<String, dynamic>> _get(String path) async {
+    try {
+      final headers  = await _authHeaders();
+      final response = await http
+          .get(Uri.parse('$baseUrl$path'), headers: headers)
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 401) throw 'SESSION_EXPIRED';
+
+      final decoded = _safeJson(response.body);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        if (decoded is Map<String, dynamic>) return decoded;
+        return {'data': decoded};
+      }
+      throw _errorFrom(decoded, response.statusCode);
+    } on SocketException {
+      throw 'Cannot reach server. Check connection.';
+    }
+  }
+
+  static Future<void> saveSession(
+    Map<String, dynamic> dealer,
+    String token,
+    String refreshToken,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kToken,        token);
+    await prefs.setString(_kRefreshToken, refreshToken);
+    await prefs.setString(_kDealerCode,   dealer['dealerCode']?.toString() ?? '');
+    await prefs.setString(_kDealerName,   dealer['dealerName']?.toString() ?? '');
+    await prefs.setInt   (_kDealerId,     (dealer['dealerId'] as num?)?.toInt() ?? 0);
+    await prefs.setString(_kMobile,       dealer['mobile']?.toString() ?? '');
+    await prefs.setString(_kCity,         dealer['city']?.toString() ?? '');
+  }
+
+  static Future<void> clearSession() async =>
+      (await SharedPreferences.getInstance()).clear();
 
   static Future<bool> isLoggedIn() async {
-    final token = await getToken();
-    return token != null && token.isNotEmpty;
+    final t = await getToken();
+    return t != null && t.isNotEmpty;
   }
 
   static Future<Map<String, String?>> getLocalDealerInfo() async {
-    final prefs = await SharedPreferences.getInstance();
+    final p = await SharedPreferences.getInstance();
     return {
-      'dealerCode': prefs.getString(_kDealerCode),
-      'dealerName': prefs.getString(_kDealerName),
-      'mobile':     prefs.getString(_kMobile),
-      'city':       prefs.getString(_kCity),
+      'dealerCode': p.getString(_kDealerCode),
+      'dealerName': p.getString(_kDealerName),
+      'mobile'    : p.getString(_kMobile),
+      'city'      : p.getString(_kCity),
     };
   }
 
-  // ══════════════════════════════════════════════════════════
-  // AUTH — Send OTP
-  // ══════════════════════════════════════════════════════════
   static Future<Map<String, dynamic>> sendOtp({
     required String mobile,
     required String dealerCode,
-  }) async {
-    final res = await http.post(
-      Uri.parse('$baseUrl/api/DealerAuth/send-otp'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'mobileNumber': mobile,
-        'dealerCode':   dealerCode.toUpperCase(),
-      }),
-    );
+  }) =>
+      _post('/api/DealerAuth/send-otp', {
+        'mobileNumber': mobile.trim(),
+        'dealerCode'  : dealerCode.trim().toUpperCase(),
+      });
 
-    final data = jsonDecode(res.body);
-    if (res.statusCode == 200) return {'success': true, ...data};
-    throw data['error'] ?? 'Failed to send OTP';
-  }
-
-  // ══════════════════════════════════════════════════════════
-  // AUTH — Verify OTP
-  // ══════════════════════════════════════════════════════════
   static Future<Map<String, dynamic>> verifyOtp({
     required String mobile,
     required String dealerCode,
     required String otp,
   }) async {
-    final res = await http.post(
-      Uri.parse('$baseUrl/api/DealerAuth/verify-otp'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'mobileNumber': mobile,
-        'dealerCode':   dealerCode.toUpperCase(),
-        'otpCode':      otp,
-      }),
+    final data = await _post('/api/DealerAuth/verify-otp', {
+      'mobileNumber': mobile.trim(),
+      'dealerCode'  : dealerCode.trim().toUpperCase(),
+      'otpCode'     : otp.trim(),
+    });
+    await saveSession(
+      data['dealer']       as Map<String, dynamic>,
+      data['token']        as String,
+      data['refreshToken'] as String,
     );
-
-    final data = jsonDecode(res.body);
-    if (res.statusCode == 200) {
-      await saveSession(data['dealer'], data['token'], data['refreshToken']);
-      return data;
-    }
-    throw data['error'] ?? 'Invalid OTP';
+    return data;
   }
 
-  // ══════════════════════════════════════════════════════════
-  // DASHBOARD — Stats
-  // ══════════════════════════════════════════════════════════
-  static Future<Map<String, dynamic>> getDashboardStats() async {
-    final headers = await authHeaders();
-    final res = await http.get(
-      Uri.parse('$baseUrl/api/DealerDashboard/stats'),
-      headers: headers,
-    );
+  static Future<Map<String, dynamic>> getDashboardStats() =>
+      _get('/api/DealerDashboard/stats');
 
-    if (res.statusCode == 200) return jsonDecode(res.body);
-    if (res.statusCode == 401) throw 'SESSION_EXPIRED';
-    throw 'Failed to load dashboard';
-  }
-
-  // ══════════════════════════════════════════════════════════
-  // LOGOUT
-  // ══════════════════════════════════════════════════════════
   static Future<void> logout() async {
     try {
-      final prefs   = await SharedPreferences.getInstance();
-      final refresh = prefs.getString(_kRefreshToken);
-      if (refresh != null) {
-        await http.post(
-          Uri.parse('$baseUrl/api/DealerAuth/logout'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({'refreshToken': refresh}),
-        );
+      final p       = await SharedPreferences.getInstance();
+      final refresh = p.getString(_kRefreshToken);
+      if (refresh != null && refresh.isNotEmpty) {
+        await _post('/api/DealerAuth/logout', {'refreshToken': refresh});
       }
     } catch (_) {}
     await clearSession();

@@ -1,16 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using OfficeOpenXml;
 using B2BBuyback.Api.Data;
 using B2BBuyback.Api.Models;
 using B2BBuyback.Api.DTOs;
 
 namespace B2BBuyback.Api.Controllers
 {
-
-    // =============================================
-    // EMI ENQUIRY CONTROLLER
-    // =============================================
     [Route("api/[controller]")]
     [ApiController]
     public class EmiEnquiryController : ControllerBase
@@ -22,9 +17,9 @@ namespace B2BBuyback.Api.Controllers
         [HttpPost]
         public async Task<IActionResult> Submit([FromBody] EmiEnquiryDto dto)
         {
-            if (string.IsNullOrWhiteSpace(dto.FullName))   return BadRequest("Full name required.");
+            if (string.IsNullOrWhiteSpace(dto.FullName))     return BadRequest("Full name required.");
             if (string.IsNullOrWhiteSpace(dto.MobileNumber)) return BadRequest("Mobile number required.");
-            if (string.IsNullOrWhiteSpace(dto.PinCode))    return BadRequest("Pin code required.");
+            if (string.IsNullOrWhiteSpace(dto.PinCode))      return BadRequest("Pin code required.");
 
             var scootyExists = await _context.ScootyInventories.AnyAsync(s => s.ScootyId == dto.ScootyId);
             if (!scootyExists) return BadRequest("Vehicle not found.");
@@ -45,7 +40,7 @@ namespace B2BBuyback.Api.Controllers
             return Ok(new { message = "EMI enquiry submitted! Our team will contact you soon." });
         }
 
-        // GET /api/EmiEnquiry — admin view all
+        // GET /api/EmiEnquiry
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -63,14 +58,20 @@ namespace B2BBuyback.Api.Controllers
         }
 
         // PUT /api/EmiEnquiry/{id}/status
+        // ── FIX: was [FromBody] string — Swagger can't generate schema for bare string body ──
+        // Now uses a simple wrapper DTO
         [HttpPut("{id}/status")]
-        public async Task<IActionResult> UpdateStatus(int id, [FromBody] string status)
+        public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateStatusDto dto)
         {
+            if (string.IsNullOrWhiteSpace(dto.Status))
+                return BadRequest("Status is required.");
+
             var enquiry = await _context.EmiEnquiries.FindAsync(id);
             if (enquiry == null) return NotFound();
-            enquiry.Status = status;
+
+            enquiry.Status = dto.Status.Trim();
             await _context.SaveChangesAsync();
-            return Ok("Status updated");
+            return Ok(new { message = "Status updated.", status = enquiry.Status });
         }
     }
 }

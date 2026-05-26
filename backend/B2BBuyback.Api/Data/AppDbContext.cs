@@ -24,6 +24,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<CustomerRequest> CustomerRequests { get; set; }
 
+    public virtual DbSet<Dealer> Dealers { get; set; }
+
     public virtual DbSet<EmiEnquiry> EmiEnquiries { get; set; }
 
     public virtual DbSet<ExchangeAdminAction> ExchangeAdminActions { get; set; }
@@ -73,8 +75,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<VwAreaStockSummary> VwAreaStockSummaries { get; set; }
 
     public virtual DbSet<VwExchangeDashboardStat> VwExchangeDashboardStats { get; set; }
-
-    public DbSet<Dealer> Dealers { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -212,6 +212,26 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Status)
                 .HasMaxLength(50)
                 .HasDefaultValue("New");
+        });
+
+        modelBuilder.Entity<Dealer>(entity =>
+        {
+            entity.HasKey(e => e.DealerId).HasName("PK__Dealers__CA2F8EB2BDAF0444");
+            entity.HasIndex(e => e.MobileNumber, "UQ__Dealers__250375B1BBB16599").IsUnique();
+            entity.HasIndex(e => e.DealerCode,   "UQ__Dealers__A5B47E8E3035FCC5").IsUnique();
+            entity.Property(e => e.City).HasMaxLength(100);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
+            entity.Property(e => e.DealerCode).HasMaxLength(50);
+            entity.Property(e => e.DealerName).HasMaxLength(200);
+            entity.Property(e => e.Email).HasMaxLength(255);
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+            entity.Property(e => e.MobileNumber).HasMaxLength(10);
+            entity.Property(e => e.State).HasMaxLength(100);
+
+            // ── New columns ──────────────────────────────────────────────
+            entity.Property(e => e.OtpCode).HasMaxLength(6);
+            entity.Property(e => e.OtpAttempts).HasDefaultValue(0);
+            entity.Property(e => e.RefreshToken).HasMaxLength(500);
         });
 
         modelBuilder.Entity<EmiEnquiry>(entity =>
@@ -669,18 +689,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.StateName).HasMaxLength(100);
             entity.Property(e => e.UpdatedAt).HasColumnType("datetime");
             entity.Property(e => e.VariantName).HasMaxLength(100);
-        });
-
-        modelBuilder.Entity<Dealer>(entity =>
-        {
-            entity.HasKey(e => e.DealerId);
-            entity.HasIndex(e => e.DealerCode).IsUnique();
-            entity.HasIndex(e => e.MobileNumber).IsUnique();
-            entity.Property(e => e.DealerCode).HasMaxLength(50).IsRequired();
-            entity.Property(e => e.DealerName).HasMaxLength(200).IsRequired();
-            entity.Property(e => e.MobileNumber).HasMaxLength(10).IsRequired();
-            entity.Property(e => e.OtpCode).HasMaxLength(6);
-            entity.Property(e => e.RefreshToken).HasMaxLength(500);
         });
 
         modelBuilder.Entity<VwExchangeDashboardStat>(entity =>
