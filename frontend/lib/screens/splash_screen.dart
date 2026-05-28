@@ -70,7 +70,7 @@ class _SplashScreenState extends State<SplashScreen>
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.gold.withOpacity(0.4),
+                        color: AppColors.gold.withValues(alpha: 0.4),
                         blurRadius: 32, spreadRadius: 4,
                       )
                     ],
@@ -97,7 +97,7 @@ class _SplashScreenState extends State<SplashScreen>
                   'Procurement & Inspection',
                   style: TextStyle(
                     fontSize: 13, fontWeight: FontWeight.w500,
-                    color: Colors.white.withOpacity(0.55),
+                    color: Colors.white.withValues(alpha: 0.55),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -105,7 +105,7 @@ class _SplashScreenState extends State<SplashScreen>
                   'Certified Exchange Program',
                   style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.gold.withOpacity(0.8),
+                    color: AppColors.gold.withValues(alpha: 0.8),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -114,7 +114,7 @@ class _SplashScreenState extends State<SplashScreen>
                   width: 28, height: 28,
                   child: CircularProgressIndicator(
                     strokeWidth: 2.5,
-                    color: AppColors.gold.withOpacity(0.6),
+                    color: AppColors.gold.withValues(alpha: 0.6),
                   ),
                 ),
               ],

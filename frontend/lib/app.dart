@@ -1,3 +1,4 @@
+// lib/app.dart
 import 'package:b2b_buyback/core/theme/app_theme.dart';
 import 'package:b2b_buyback/features/dashboard/data/dashboard_api.dart';
 import 'package:b2b_buyback/features/dashboard/presentation/dashboard_screen.dart';

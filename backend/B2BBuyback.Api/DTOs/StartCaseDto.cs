@@ -8,6 +8,6 @@ public class StartCaseDto
         public string VehicleModel   { get; set; } = string.Empty;
         public string RegistrationNo { get; set; } = string.Empty;
         public int    YearOfPurchase { get; set; }
-        public int    KmDriven       { get; set; }
+        public decimal KmDriven { get; set; }
         public string? VehicleVariant { get; set; }
     }

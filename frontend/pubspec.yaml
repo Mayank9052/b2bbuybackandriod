@@ -3,8 +3,6 @@ description: "B2B buyback Android starter application."
 publish_to: 'none'
 version: 1.0.0+1
 
-# environment:
-#   sdk: ^3.11.5
 environment:
   sdk: ">=3.11.4 <4.0.0"
 
@@ -15,23 +13,26 @@ dependencies:
   # HTTP
   http: ^1.6.0
 
-  # Local storage for JWT / dealer session
+  # Local storage
   shared_preferences: ^2.5.5
+
+  # Image Picker
+  image_picker: ^1.1.2
 
   # Icons
   cupertino_icons: ^1.0.8
 
-  # Optional: for future SMS auto-read
+  # Optional future packages
   # sms_autofill: ^2.3.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
   flutter_lints: ^3.0.0
 
 flutter:
   uses-material-design: true
-  
-  # If you add a logo asset:
+
   # assets:
   #   - assets/images/logo.png

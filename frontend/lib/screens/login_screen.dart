@@ -97,7 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
               Text(
                 'Procurement & Inspection',
                 style: TextStyle(
-                  fontSize: 13, color: Colors.white.withOpacity(0.55),
+                  fontSize: 13, color: Colors.white.withValues(alpha:0.55),
                 ),
               ),
               const SizedBox(height: 48),
@@ -111,7 +111,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.18),
+                      color: Colors.black.withValues(alpha: 0.18),
                       blurRadius: 24, offset: const Offset(0, 8),
                     )
                   ],
@@ -235,7 +235,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 32),
               Text(
                 'v 1.0 | BGauss Auto Pvt. Ltd.',
-                style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.3)),
+                style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.3)),
               ),
               const SizedBox(height: 24),
             ],

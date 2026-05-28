@@ -37,14 +37,15 @@
       },
       "problemMatcher": []
     },
+
+    // ── Auto-IP tasks (no hardcoded IP) ────────────────────────────────
     {
-      "label": "frontend: run",
+      "label": "frontend: run (USB - auto IP)",
       "type": "process",
-      "command": "${workspaceFolder}\\.vscode\\scripts\\flutter-with-git.cmd",
+      "command": "powershell",
       "args": [
-        "run",
-        "--dart-define",
-        "API_BASE_URL=http://10.13.232.40:5181"
+        "-ExecutionPolicy", "Bypass",
+        "-File", "${workspaceFolder}\\.vscode\\scripts\\run-flutter-device.ps1"
       ],
       "options": {
         "cwd": "${workspaceFolder}\\frontend"
@@ -53,15 +54,25 @@
       "problemMatcher": []
     },
     {
-      "label": "frontend: run (USB)",
+      "label": "show current LAN IP",
+      "type": "process",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy", "Bypass",
+        "-File", "${workspaceFolder}\\.vscode\\scripts\\get-lan-ip.ps1"
+      ],
+      "problemMatcher": []
+    },
+
+    // ── Legacy tasks (hardcoded IP — update manually if needed) ────────
+    {
+      "label": "frontend: run",
       "type": "process",
       "command": "${workspaceFolder}\\.vscode\\scripts\\flutter-with-git.cmd",
       "args": [
         "run",
-        "-d",
-        "MNEIEYSSVSEYU8AI",
         "--dart-define",
-        "API_BASE_URL=http://10.13.232.40:5181"
+        "API_BASE_URL=http://10.0.2.2:5181"
       ],
       "options": {
         "cwd": "${workspaceFolder}\\frontend"
@@ -75,8 +86,7 @@
       "command": "${workspaceFolder}\\.vscode\\scripts\\flutter-with-git.cmd",
       "args": [
         "run",
-        "-d",
-        "emulator",
+        "-d", "emulator",
         "--dart-define",
         "API_BASE_URL=http://10.0.2.2:5181"
       ],
@@ -86,15 +96,11 @@
       "isBackground": true,
       "problemMatcher": []
     },
+
+    // ── Compound tasks ─────────────────────────────────────────────────
     {
-      "label": "fullstack: run",
-      "dependsOn": ["backend: run", "frontend: run"],
-      "dependsOrder": "parallel",
-      "problemMatcher": []
-    },
-    {
-      "label": "fullstack: run (USB)",
-      "dependsOn": ["backend: run", "frontend: run (USB)"],
+      "label": "fullstack: run (USB - auto IP)",
+      "dependsOn": ["backend: run", "frontend: run (USB - auto IP)"],
       "dependsOrder": "parallel",
       "problemMatcher": []
     },

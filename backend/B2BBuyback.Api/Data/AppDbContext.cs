@@ -75,6 +75,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<VwAreaStockSummary> VwAreaStockSummaries { get; set; }
 
     public virtual DbSet<VwExchangeDashboardStat> VwExchangeDashboardStats { get; set; }
+    public DbSet<ExchangeCaseDocument>     ExchangeCaseDocuments     { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -696,6 +697,28 @@ public partial class AppDbContext : DbContext
             entity
                 .HasNoKey()
                 .ToView("vw_ExchangeDashboardStats");
+        });
+
+        modelBuilder.Entity<ExchangeCaseDocument>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("ExchangeCaseDocuments");
+ 
+            entity.Property(e => e.DocumentType).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.FilePath).HasMaxLength(500).IsRequired();
+            entity.Property(e => e.FileName).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.ContentType).HasMaxLength(100);
+            entity.Property(e => e.FileSizeBytes).HasDefaultValue(0L);
+            entity.Property(e => e.UploadedAt).HasDefaultValueSql("GETUTCDATE()");
+ 
+            entity.HasIndex(e => new { e.CaseId, e.DocumentType })
+                  .IsUnique()
+                  .HasDatabaseName("UIX_ExchangeCaseDocuments_CaseId_DocumentType");
+ 
+            entity.HasOne(e => e.Case)
+                  .WithMany(c => c.ExchangeCaseDocuments)
+                  .HasForeignKey(e => e.CaseId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
 
         OnModelCreatingPartial(modelBuilder);

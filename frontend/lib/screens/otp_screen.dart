@@ -147,7 +147,7 @@ class _OtpScreenState extends State<OtpScreen> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [BoxShadow(
-                          color: Colors.black.withOpacity(0.15),
+                          color: Colors.black.withValues(alpha:0.15),
                           blurRadius: 20, offset: const Offset(0, 6),
                         )],
                       ),
@@ -251,9 +251,9 @@ class _OtpScreenState extends State<OtpScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.08),
+                        color: Colors.white.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(999),
-                        border: Border.all(color: Colors.white.withOpacity(0.12)),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
                       ),
                       child: Row(mainAxisSize: MainAxisSize.min, children: [
                         const Icon(Icons.store_outlined, color: AppColors.gold, size: 14),

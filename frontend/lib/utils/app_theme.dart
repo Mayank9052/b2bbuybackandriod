@@ -2,45 +2,46 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const navy     = Color(0xFF0B1929);
-  static const navy2    = Color(0xFF0F2236);
-  static const gold     = Color(0xFFFBBF24);
-  static const goldDark = Color(0xFFF59E0B);
-  static const green    = Color(0xFF16A34A);
-  static const amber    = Color(0xFFD97706);
-  static const red      = Color(0xFFDC2626);
-  static const blue     = Color(0xFF2563EB);
-  static const gray1    = Color(0xFFF8FAFC);
-  static const gray2    = Color(0xFFF1F5F9);
-  static const gray3    = Color(0xFFE2E8F0);
-  static const gray4    = Color(0xFF94A3B8);
-  static const gray5    = Color(0xFF64748B);
-  static const gray6    = Color(0xFF334155);
-  static const gray7    = Color(0xFF0F172A);
+  static const navy    = Color(0xFF0F172A);
+  static const navyMid = Color(0xFF1E293B);
+  static const gold    = Color(0xFFF59E0B);
+  static const goldDark= Color(0xFFD97706);
+  static const blue    = Color(0xFF2563EB);
+  static const green   = Color(0xFF16A34A);
+  static const red     = Color(0xFFDC2626);
+  static const amber   = Color(0xFFF59E0B);
+  static const purple  = Color(0xFF7C3AED);
+  static const gray1   = Color(0xFFF8FAFC);
+  static const gray2   = Color(0xFFF1F5F9);
+  static const gray3   = Color(0xFFE2E8F0);
+  static const gray4   = Color(0xFF94A3B8);
+  static const gray5   = Color(0xFF64748B);
+  static const gray6   = Color(0xFF475569);
+  static const gray7   = Color(0xFF1E293B);
+  static const white   = Colors.white;
 }
 
 class AppTheme {
   static ThemeData get theme => ThemeData(
-    fontFamily:  'Inter',
-    colorScheme: ColorScheme.fromSeed(seedColor: AppColors.navy),
-    scaffoldBackgroundColor: AppColors.gray1,
-    appBarTheme: const AppBarTheme(
-      backgroundColor: AppColors.navy,
-      foregroundColor: Colors.white,
-      elevation: 0,
+    useMaterial3: true,
+    fontFamily: 'Inter',
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: AppColors.gold,
+      brightness: Brightness.light,
     ),
+    scaffoldBackgroundColor: AppColors.navy,
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.gold,
         foregroundColor: AppColors.navy,
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+        textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: Colors.white,
+      fillColor: AppColors.gray1,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: AppColors.gray3),
@@ -51,7 +52,7 @@ class AppTheme {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.gold, width: 2),
+        borderSide: const BorderSide(color: AppColors.blue, width: 2),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),

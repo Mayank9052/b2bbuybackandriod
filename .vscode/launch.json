@@ -47,11 +47,13 @@
       "flutterMode": "debug",
       "console": "debugConsole",
       "preLaunchTask": "frontend: pub get",
-      "customTool": "${workspaceFolder}\\.vscode\\scripts\\flutter-with-git.cmd",
-      "customToolReplacesArgs": 1,
+      // Uses PowerShell script that auto-detects your current WiFi IP.
+      // No more manual IP updates when the network changes!
+      "customTool": "powershell",
+      "customToolReplacesArgs": 0,
       "toolArgs": [
-        "--dart-define",
-        "API_BASE_URL=http://10.13.232.40:5181"
+        "-ExecutionPolicy", "Bypass",
+        "-File", "${workspaceFolder}\\.vscode\\scripts\\run-flutter-device.ps1"
       ]
     }
   ],

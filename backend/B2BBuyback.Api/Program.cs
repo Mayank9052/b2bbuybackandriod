@@ -22,6 +22,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // ── Services ──────────────────────────────────────────────────
 //builder.Services.AddScoped<IExchangeEmailService, ExchangeEmailService>();
 builder.Services.AddScoped<IDealerOtpEmailService, DealerOtpEmailService>();
+builder.Services.AddScoped<IExchangeEmailService, ExchangeEmailService>();
+//builder.Services.AddScoped<IExchangeEmailService, ExchangeEmailService>();
 
 // ── Controllers ───────────────────────────────────────────────
 builder.Services.AddControllers()

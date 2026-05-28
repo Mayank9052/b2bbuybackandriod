@@ -28,6 +28,26 @@ namespace B2BBuyback.Api.Controllers
         private readonly IExchangeEmailService _email;
 
         private const string IMG_FOLDER = "ExchangeImages";
+        private const string DOC_FOLDER = "CaseDocuments";
+
+        private static readonly string[] ValidDocTypes =
+        {
+            "RC",
+            "IDProof",
+            "PaymentProof",
+            "Insurance",
+            "Hypothecation",
+            "LoanNOC",
+            "ServiceHistory"
+        };
+
+        private static readonly string[] AllowedDocExtensions =
+        {
+            ".jpg",
+            ".jpeg",
+            ".png",
+            ".pdf"
+        };
 
         private static readonly Dictionary<string, string[]> InspectionParams = new()
         {
@@ -199,6 +219,280 @@ namespace B2BBuyback.Api.Controllers
                 .ToListAsync();
 
             return Ok(list);
+        }
+
+        [HttpPost("{id}/documents")]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> UploadDocument(
+            int id,
+            [FromForm] string documentType,
+            IFormFile document)
+        {
+            // ── 1. Validate document type ──────────────────────────────────────────
+            if (!ValidDocTypes.Contains(documentType, StringComparer.OrdinalIgnoreCase))
+                return BadRequest(new
+                {
+                    error = $"Invalid documentType '{documentType}'. " +
+                            $"Allowed: {string.Join(", ", ValidDocTypes)}"
+                });
+        
+            // ── 2. Load case ───────────────────────────────────────────────────────
+            var c = await _db.ExchangeCases
+                .Include(x => x.ExchangeCaseDocuments)
+                .FirstOrDefaultAsync(x => x.Id == id);
+        
+            if (c == null) return NotFound(new { error = $"Case {id} not found." });
+            if (c.DealerId != CurrentUser && !IsAdmin) return Forbid();
+        
+            // ── 3. Validate file ───────────────────────────────────────────────────
+            if (document == null || document.Length == 0)
+                return BadRequest(new { error = "No document provided." });
+        
+            var ext = Path.GetExtension(document.FileName).ToLowerInvariant();
+            if (!AllowedDocExtensions.Contains(ext))
+                return BadRequest(new
+                {
+                    error = $"File type '{ext}' not allowed. " +
+                            $"Use: {string.Join(", ", AllowedDocExtensions)}"
+                });
+        
+            // ── 4. Size limit: 10 MB ───────────────────────────────────────────────
+            const long maxBytes = 10L * 1024 * 1024;
+            if (document.Length > maxBytes)
+                return BadRequest(new { error = "File exceeds 10 MB limit." });
+        
+            // ── 5. Build save path ─────────────────────────────────────────────────
+            var webRoot = GetWebRoot();
+            var folder  = Path.Combine(webRoot, DOC_FOLDER, id.ToString());
+            try
+            {
+                Directory.CreateDirectory(folder);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Cannot create document directory: {Folder}", folder);
+                return StatusCode(500, new
+                {
+                    error  = "Server cannot create document directory.",
+                    detail = ex.Message
+                });
+            }
+        
+            // Final filename = DocumentType + extension (e.g.  RC.pdf, IDProof.jpg)
+            var finalName = $"{documentType}{ext}";
+            var tempPath  = Path.Combine(folder, $"{documentType}_{Guid.NewGuid():N}{ext}");
+            var finalPath = Path.Combine(folder, finalName);
+        
+            // ── 6. Write to disk via atomic temp → rename ──────────────────────────
+            try
+            {
+                await using (var fs = System.IO.File.Create(tempPath))
+                    await document.CopyToAsync(fs);
+        
+                if (System.IO.File.Exists(finalPath))
+                    System.IO.File.Delete(finalPath);
+        
+                System.IO.File.Move(tempPath, finalPath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to write document: {Path}", finalPath);
+                if (System.IO.File.Exists(tempPath))
+                    try { System.IO.File.Delete(tempPath); } catch { /* best effort */ }
+        
+                return StatusCode(500, new
+                {
+                    error  = "Failed to save document.",
+                    detail = ex.Message
+                });
+            }
+        
+            // ── 7. Upsert DB record ────────────────────────────────────────────────
+            var relPath  = $"/{DOC_FOLDER}/{id}/{finalName}";  // e.g. /CaseDocuments/42/RC.pdf
+            var existing = c.ExchangeCaseDocuments
+                .FirstOrDefault(d => d.DocumentType.Equals(
+                    documentType, StringComparison.OrdinalIgnoreCase));
+        
+            if (existing != null)
+            {
+                // Re-upload: update the existing row
+                existing.FilePath      = relPath;
+                existing.FileName      = document.FileName;
+                existing.ContentType   = document.ContentType;
+                existing.FileSizeBytes = document.Length;
+                existing.UploadedAt    = DateTime.UtcNow;
+            }
+            else
+            {
+                _db.ExchangeCaseDocuments.Add(new ExchangeCaseDocument
+                {
+                    CaseId        = id,
+                    DocumentType  = documentType,
+                    FilePath      = relPath,
+                    FileName      = document.FileName,
+                    ContentType   = document.ContentType,
+                    FileSizeBytes = document.Length,
+                    UploadedAt    = DateTime.UtcNow
+                });
+            }
+        
+            c.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+        
+            _logger.LogInformation(
+                "📄 Document uploaded: case={CaseId} type={DocType} " +
+                "file={FileName} size={SizeKb}KB path={Path}",
+                id, documentType,
+                document.FileName,
+                Math.Round(document.Length / 1024.0, 1),
+                relPath);
+        
+            return Ok(new
+            {
+                documentType,
+                path       = relPath,
+                fileName   = document.FileName,
+                fileSizeKb = Math.Round(document.Length / 1024.0, 1)
+            });
+        }
+        
+        
+        // ── GET /api/ExchangeCases/{id}/documents ──────────────────────────────────
+        // Called by Flutter S09b on screen open to pre-populate which docs
+        // are already uploaded (so ✓ ticks show correctly on re-entry).
+        [HttpGet("{id}/documents")]
+        public async Task<IActionResult> GetDocuments(int id)
+        {
+            var c = await _db.ExchangeCases
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == id);
+        
+            if (c == null) return NotFound(new { error = $"Case {id} not found." });
+            if (c.DealerId != CurrentUser && !IsAdmin) return Forbid();
+        
+            var docs = await _db.ExchangeCaseDocuments
+                .AsNoTracking()
+                .Where(d => d.CaseId == id)
+                .Select(d => new
+                {
+                    d.Id,
+                    d.DocumentType,
+                    d.FilePath,
+                    d.FileName,
+                    d.ContentType,
+                    d.FileSizeBytes,
+                    d.UploadedAt
+                })
+                .ToListAsync();
+        
+            return Ok(docs);
+        }
+        
+        
+        // ── GET /api/ExchangeCases/{id}/documents/{docType}/download ───────────────
+        // Optional: lets admin download/view a specific document in browser.
+        // Example: GET /api/ExchangeCases/42/documents/RC/download
+        [HttpGet("{id}/documents/{docType}/download")]
+        public async Task<IActionResult> DownloadDocument(int id, string docType)
+        {
+            var c = await _db.ExchangeCases.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == id);
+            if (c == null) return NotFound();
+            if (c.DealerId != CurrentUser && !IsAdmin) return Forbid();
+        
+            var doc = await _db.ExchangeCaseDocuments.AsNoTracking()
+                .FirstOrDefaultAsync(d =>
+                    d.CaseId == id &&
+                    d.DocumentType.Equals(docType, StringComparison.OrdinalIgnoreCase));
+        
+            if (doc == null)
+                return NotFound(new { error = $"Document '{docType}' not found for case {id}." });
+        
+            // Serve the file from disk
+            var webRoot   = GetWebRoot();
+            var localPath = Path.Combine(webRoot, DOC_FOLDER, id.ToString(),
+                                Path.GetFileName(doc.FilePath));
+        
+            if (!System.IO.File.Exists(localPath))
+                return NotFound(new
+                {
+                    error = "File not found on disk. It may have been deleted.",
+                    path  = localPath
+                });
+        
+            var contentType = doc.ContentType ?? "application/octet-stream";
+            var fileBytes   = await System.IO.File.ReadAllBytesAsync(localPath);
+            return File(fileBytes, contentType, doc.FileName);
+        }
+
+        // POST /api/ExchangeCases/{id}/confirm-exchange
+        // Called by Flutter S09b after all mandatory documents are uploaded.
+        // Updates case status to "ExchangeConfirmed".
+        
+        [HttpPost("{id}/confirm-exchange")]
+        public async Task<IActionResult> ConfirmExchange(int id)
+        {
+            var c = await _db.ExchangeCases
+                .Include(x => x.ExchangeCaseDocuments)
+                .FirstOrDefaultAsync(x => x.Id == id);
+        
+            if (c == null)
+                return NotFound(new { error = $"Case {id} not found." });
+        
+            if (c.DealerId != CurrentUser && !IsAdmin)
+                return Forbid();
+        
+            // Validate mandatory docs are uploaded
+            var requiredDocs = new[] { "RC", "IDProof", "PaymentProof", "Insurance" };
+            var uploadedDocs = c.ExchangeCaseDocuments
+                .Select(d => d.DocumentType)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        
+            var missingDocs = requiredDocs
+                .Where(d => !uploadedDocs.Contains(d))
+                .ToList();
+        
+            if (missingDocs.Any())
+            {
+                return BadRequest(new
+                {
+                    error   = "Mandatory documents missing.",
+                    missing = missingDocs
+                });
+            }
+        
+            // Allow confirming from any post-submission status
+            var allowedStatuses = new[]
+            {
+                "PendingAdminReview",
+                "AdminApproved",
+                "AdminModified",
+                "ImagesPending"
+            };
+        
+            if (!allowedStatuses.Contains(c.Status))
+            {
+                return BadRequest(new
+                {
+                    error  = $"Cannot confirm exchange in status '{c.Status}'.",
+                    status = c.Status
+                });
+            }
+        
+            c.Status    = "ExchangeConfirmed";
+            c.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+        
+            _logger.LogInformation(
+                "✅ Exchange confirmed: case={CaseId} ({CaseNumber}) by {Dealer}",
+                id, c.CaseNumber, CurrentUser);
+        
+            return Ok(new
+            {
+                caseNumber = c.CaseNumber,
+                status     = c.Status,
+                message    = "Exchange confirmed successfully."
+            });
         }
 
         // ── GET /api/ExchangeCases/my-cases ───────────────────────────────────
